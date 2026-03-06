@@ -3,7 +3,9 @@ module github.com/PlopyBlopy/url-shorter
 go 1.25.3
 
 require (
+	github.com/caarlos0/env/v11 v11.4.0
 	github.com/gin-gonic/gin v1.12.0
+	github.com/joho/godotenv v1.5.1
 	go.uber.org/zap v1.27.1
 )
 
