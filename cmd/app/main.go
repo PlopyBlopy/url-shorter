@@ -1,37 +1,90 @@
 package main
 
 import (
-	"github.com/PlopyBlopy/url-shorter/internal/handlers"
+	"context"
+	"fmt"
+
+	"github.com/PlopyBlopy/url-shorter/config"
+	"github.com/PlopyBlopy/url-shorter/internal"
+	"github.com/PlopyBlopy/url-shorter/internal/adapters"
+	addUrl "github.com/PlopyBlopy/url-shorter/internal/handlers/add_url"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
 func main() {
-	log, err := zap.NewProduction()
+	c, err := config.NewAppConfig()
 	if err != nil {
 		panic(err)
 	}
+
+	var log *zap.Logger
+	if ok := c.IsDev; ok {
+		log, err = zap.NewDevelopment()
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		log, err = zap.NewProduction()
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	defer log.Sync()
 
-	err = app(log)
+	err = app(c, log)
 	if err != nil {
 		log.Fatal("app error", zap.Error(err))
 	}
 }
 
-// TODO для использования значений: .env => config нужно params: config config.Config
-func app(log *zap.Logger) error {
+func app(c *config.AppConfig, log *zap.Logger) error {
 	r := gin.Default()
 
-	v1 := r.Group("/v1")
-	v1.POST("/", handlers.AddUriHandler())
+	// PostgreSQL connection
+	ctx := context.Background()
+	config, err := pgxpool.ParseConfig(c.DBConnString)
+	if err != nil {
+		return fmt.Errorf("Failed create pgxpool.Config: %w", err)
+	}
 
-	log.Info("Start listening to HTTP on the local host:8080")
-	_ = log.Sync()
+	config.MaxConns = c.MaxConns
+	config.MinConns = c.MinConns
 
-	if err := r.Run(":8080"); err != nil {
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return fmt.Errorf("Failed create new pgxpool: %w", err)
+	}
+
+	// dependencies
+	rep := adapters.NewRepository(pool)
+
+	g, err := internal.NewGenerator(rep, ctx)
+	if err != nil {
 		return err
 	}
+
+	// usecases
+	addUrlUsecase := addUrl.AddUrlUsecase(g, rep)
+
+	// handlers
+	v1 := r.Group("/v1")
+	v1.POST("/", addUrl.AddUrlHandler(addUrlUsecase))
+
+	// HTTP Server
+	log.Info("Start listening to HTTP",
+		zap.String("domain", c.Domain),
+		zap.String("port", c.Port),
+	)
+
+	if err := r.Run(fmt.Sprintf("%s:%s", c.Domain, c.Port)); err != nil {
+		return err
+	}
+
+	// Graceful Shutdown
+	// in the future
 
 	return nil
 }
