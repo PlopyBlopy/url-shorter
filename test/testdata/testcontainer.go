@@ -3,7 +3,6 @@ package testdata
 import (
 	"context"
 	"path/filepath"
-	"runtime"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
@@ -13,13 +12,10 @@ import (
 
 // Creates postgres container
 func NewPostgresTestcontainer(ctx context.Context) (*postgres.PostgresContainer, error) {
-	// Нужно для инициализации скрипта
-	// Получаем путь к текущему файлу и его дериктории
-	_, filename, _, _ := runtime.Caller(0)
-	currentDir := filepath.Dir(filename)
+	curDir := GetCurDirPath()
 
 	pgContainer, err := postgres.Run(ctx, "postgres:18-alpine",
-		postgres.WithInitScripts(filepath.Join(currentDir, "test_init.sql")),
+		postgres.WithInitScripts(filepath.Join(curDir, "test_init.sql")),
 		postgres.WithDatabase("test-db"),
 		postgres.WithUsername("postgres"),
 		postgres.WithPassword("postgres"),
