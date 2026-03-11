@@ -18,8 +18,8 @@ type AppConfig struct {
 	Port   string `env:"PORT"`
 	// DB
 	DBConnString string `env:"DBConnString"`
-	MinConn      int    `env:"MINCONN"`
-	MaxConn      int    `env:"MAXCONN"`
+	MinConns     int32  `env:"MINCONNS"`
+	MaxConns     int32  `env:"MAXCONNS"`
 }
 
 func NewAppConfig() (*AppConfig, error) {
