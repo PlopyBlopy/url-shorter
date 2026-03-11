@@ -1,0 +1,25 @@
+version: '3.8'
+
+name: url-shorter
+
+volumes:
+  url_shorter_data:
+
+services:
+  url_shorter_db:
+    image: postgres:18-alpine
+    container_name: url_shorter_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: UrlShorterDB
+      POSTGRES_USER: ${USER}
+      POSTGRES_PASSWORD: ${PASSWORD} 
+    volumes:
+      - url_shorter_data:/var/lib/postgresql/data
+      - ./db_init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "admin", "-d", "UrlShorterDB"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
