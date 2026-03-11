@@ -12,7 +12,7 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: UrlShorterDB
+      POSTGRES_DB: ${DB}
       POSTGRES_USER: ${USER}
       POSTGRES_PASSWORD: ${PASSWORD} 
     volumes:
