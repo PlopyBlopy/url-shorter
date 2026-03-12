@@ -10,7 +10,7 @@ import (
 	"github.com/PlopyBlopy/url-shorter/internal"
 	"github.com/PlopyBlopy/url-shorter/internal/adapters"
 	"github.com/PlopyBlopy/url-shorter/internal/domain"
-	"github.com/PlopyBlopy/url-shorter/test/testdata"
+	"github.com/PlopyBlopy/url-shorter/tests/testdata"
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
