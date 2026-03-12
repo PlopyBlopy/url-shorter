@@ -7,7 +7,7 @@ import (
 	"github.com/PlopyBlopy/url-shorter/config"
 	"github.com/PlopyBlopy/url-shorter/internal"
 	"github.com/PlopyBlopy/url-shorter/internal/adapters"
-	addUrl "github.com/PlopyBlopy/url-shorter/internal/handlers/add_url"
+	"github.com/PlopyBlopy/url-shorter/internal/handlers/urls"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -67,11 +67,13 @@ func app(c *config.AppConfig, log *zap.Logger) error {
 	}
 
 	// usecases
-	addUrlUsecase := addUrl.AddUrlUsecase(g, rep)
+	addUrlUsecase := urls.AddUrlUsecase(g, rep)
+	getUrlsUsecase := urls.GetUrlsUsecase(rep)
 
 	// handlers
 	v1 := r.Group("/v1")
-	v1.POST("/", addUrl.AddUrlHandler(addUrlUsecase))
+	v1.POST("/", urls.AddUrlHandler(addUrlUsecase))
+	v1.GET("/urls", urls.GetUrlsHandler(getUrlsUsecase))
 
 	// HTTP Server
 	log.Info("Start listening to HTTP",
