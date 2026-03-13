@@ -7,7 +7,7 @@ import (
 	"github.com/PlopyBlopy/url-shorter/config"
 	"github.com/PlopyBlopy/url-shorter/internal"
 	"github.com/PlopyBlopy/url-shorter/internal/adapters"
-	"github.com/PlopyBlopy/url-shorter/internal/handlers/urls"
+	. "github.com/PlopyBlopy/url-shorter/internal/handlers/urls" // Point-to-point import in order not to specify the package urls
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
