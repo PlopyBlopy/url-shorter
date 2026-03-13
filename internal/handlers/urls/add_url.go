@@ -3,12 +3,10 @@ package urls
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/PlopyBlopy/url-shorter/internal/domain"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 )
 
 func AddUrlHandler(u func(string, context.Context) (string, error)) func(*gin.Context) {
@@ -22,11 +20,15 @@ func AddUrlHandler(u func(string, context.Context) (string, error)) func(*gin.Co
 
 		shortUrl, err := u(i.OrigUrl, c)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			if errors.Is(err, domain.ErrURLSNoAdded) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusCreated, shortUrl)
+		c.JSON(http.StatusCreated, gin.H{"url": shortUrl})
 	}
 }
 
@@ -34,14 +36,17 @@ func AddUrlUsecase(g domain.ShortURLGenerator, rep domain.UrlAddGetter) func(str
 	return func(origUrl string, ctx context.Context) (string, error) {
 		shortUrl, err := rep.GetShortUrl(origUrl, ctx)
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
+			if errors.Is(err, domain.ErrURLSNotFound) {
 				shortUrl = g.GenerateShortUrl()
 
 				url := domain.NewUrl(origUrl, shortUrl)
 
 				err = rep.AddUrl(url, ctx)
 				if err != nil {
-					return "", fmt.Errorf("Failed add url: %w", err)
+					if errors.Is(err, domain.ErrURLSNoAdded) {
+						return "", err
+					}
+					return "", err
 				}
 			} else {
 				return "", err
