@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -52,7 +53,7 @@ func (r *Repository) AddCounter(delta int, ctx context.Context) error {
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrCounterNoAdded
 	}
 	return nil
 }
@@ -66,7 +67,7 @@ func (r *Repository) AddCounterTx(tx pgx.Tx, delta int, ctx context.Context) err
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrCounterNoAdded
 	}
 	return nil
 }
@@ -79,7 +80,7 @@ func (r *Repository) IncrementCounter(ctx context.Context) error {
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrCounterNoAdded
 	}
 
 	return nil
@@ -94,7 +95,7 @@ func (r *Repository) IncrementCounterTx(tx pgx.Tx, ctx context.Context) error {
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrCounterNoAdded
 	}
 
 	return nil
@@ -108,6 +109,9 @@ func (r *Repository) GetCounter(ctx context.Context) (uint64, error) {
 
 	err := r.pool.QueryRow(ctx, "SELECT counter FROM counter WHERE id = 0").Scan(&counter)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, domain.ErrCounterNotFound
+		}
 		return 0, err
 	}
 	return counter, nil
@@ -122,6 +126,9 @@ func (r *Repository) GetCounterTx(tx pgx.Tx, ctx context.Context) (uint64, error
 
 	err := tx.QueryRow(ctx, "SELECT counter FROM counter WHERE id = 0").Scan(&counter)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, domain.ErrCounterNotFound
+		}
 		return 0, err
 	}
 	return counter, nil
@@ -142,7 +149,7 @@ func (r *Repository) AddUrl(url domain.Url, ctx context.Context) error {
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrURLSNoAdded
 	}
 
 	err = r.IncrementCounterTx(tx, ctx)
@@ -227,7 +234,7 @@ func (r *Repository) addUrlsPackage(tx pgx.Tx, urls []domain.Url, ctx context.Co
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrURLSNoAdded
 	}
 
 	return nil
@@ -249,7 +256,7 @@ func (r *Repository) addUrlsCopyFrom(tx pgx.Tx, urls []domain.Url, ctx context.C
 		return err
 	}
 	if copyCount != int64(len(urls)) {
-		return pgx.ErrNoRows
+		return domain.ErrURLSNoAdded
 	}
 
 	return nil
@@ -265,6 +272,9 @@ func (r *Repository) GetUrls(limit int, ctx context.Context) ([]domain.Url, erro
 
 	urls, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Url])
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrURLSNotFound
+		}
 		return nil, err
 	}
 	return urls, nil
@@ -277,6 +287,9 @@ func (r *Repository) GetUrlByShortUrl(shortUrl string, ctx context.Context) (dom
 
 	err := r.pool.QueryRow(ctx, "SELECT * FROM urls WHERE short_url = $1", shortUrl).Scan(&url.OrigUrl, &url.ShortUrl, &url.CreatedAt)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return url, domain.ErrURLSNotFound
+		}
 		return url, err
 	}
 
@@ -290,6 +303,9 @@ func (r *Repository) GetUrlByOrigUrl(origUrl string, ctx context.Context) (domai
 
 	err := r.pool.QueryRow(ctx, "SELECT * FROM urls WHERE orig_url = $1", origUrl).Scan(&url.OrigUrl, &url.ShortUrl, &url.CreatedAt)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return url, domain.ErrURLSNotFound
+		}
 		return url, err
 	}
 
@@ -303,6 +319,9 @@ func (r *Repository) GetOrigUrl(shortUrl string, ctx context.Context) (string, e
 
 	err := r.pool.QueryRow(ctx, "SELECT orig_url FROM urls WHERE short_url = $1", shortUrl).Scan(&origUrl)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", domain.ErrURLSNotFound
+		}
 		return "", err
 	}
 	return origUrl, nil
@@ -315,6 +334,9 @@ func (r *Repository) GetShortUrl(origUrl string, ctx context.Context) (string, e
 	var shortUrl string
 	err := r.pool.QueryRow(ctx, "SELECT short_url FROM urls WHERE orig_url = $1", origUrl).Scan(&shortUrl)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", domain.ErrURLSNotFound
+		}
 		return "", err
 	}
 	return shortUrl, nil
@@ -323,13 +345,12 @@ func (r *Repository) GetShortUrl(origUrl string, ctx context.Context) (string, e
 // Удаление row по origUrl
 // Может вернуть nil или error или error = pgx.ErrNoRows
 func (r *Repository) RemoveByOrigUrl(origUrl string, ctx context.Context) error {
-
 	ct, err := r.pool.Exec(ctx, "DELETE FROM urls WHERE orig_url = $1", origUrl)
 	if err != nil {
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrURLSNotFound
 	}
 	return nil
 }
@@ -342,7 +363,7 @@ func (r *Repository) RemoveByShortUrl(shortUrl string, ctx context.Context) erro
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrURLSNotFound
 	}
 	return nil
 }
@@ -355,7 +376,7 @@ func (r *Repository) RemoveExpired(before time.Time, ctx context.Context) error 
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+		return domain.ErrURLSNotFound
 	}
 	return nil
 }
