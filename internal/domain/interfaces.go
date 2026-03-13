@@ -10,15 +10,19 @@ type ShortURLGenerator interface {
 
 type UrlAddGetter interface {
 	UrlAdder
-	UrlGetter
+	UrlShortGetter
 }
 
 type UrlAdder interface {
 	AddUrl(url Url, ctx context.Context) error
 }
 
-type UrlGetter interface {
+type UrlShortGetter interface {
 	GetShortUrl(origUrl string, ctx context.Context) (string, error)
+}
+
+type UrlOrigGetter interface {
+	GetOrigUrl(shortUrl string, ctx context.Context) (string, error)
 }
 
 type UrlsGetter interface {
