@@ -67,13 +67,17 @@ func app(c *config.AppConfig, log *zap.Logger) error {
 	}
 
 	// usecases
-	addUrlUsecase := urls.AddUrlUsecase(g, rep)
-	getUrlsUsecase := urls.GetUrlsUsecase(rep)
+	addUrlUsecase := AddUrlUsecase(g, rep)
+	getUrlsUsecase := GetUrlsUsecase(rep)
+	getOrigUrlUsecase := GetOrigUrlUsecase(rep)
+	getShortUrlUsecase := GetShortUrlUsecase(rep)
 
 	// handlers
 	v1 := r.Group("/v1")
-	v1.POST("/", urls.AddUrlHandler(addUrlUsecase))
-	v1.GET("/urls", urls.GetUrlsHandler(getUrlsUsecase))
+	v1.POST("/", AddUrlHandler(addUrlUsecase))
+	v1.GET("/urls", GetUrlsHandler(getUrlsUsecase))
+	v1.GET("/origurl", GetOrigUrlHandler(getOrigUrlUsecase))
+	v1.GET("/shorturl", GetShortUrlHandler(getShortUrlUsecase))
 
 	// HTTP Server
 	log.Info("Start listening to HTTP",
