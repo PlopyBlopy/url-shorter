@@ -19,7 +19,7 @@ func GetCurDirPath() string {
 
 type HTTPConfig struct {
 	// HTTP
-	Domain string `env:"DOMAIN"`
+	Domain string `env:"HOST"`
 	Port   string `env:"PORT"`
 }
 

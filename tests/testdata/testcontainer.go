@@ -69,7 +69,7 @@ func NewTestSuite(pgContainer *postgres.PostgresContainer, ctx context.Context) 
 }
 
 // Completes active connections, applies base snapshot, restoring the database to its original form.
-func (s *TestSuite) SetupTest(ctx context.Context) error {
+func (s *TestSuite) SetupTestPg(ctx context.Context) error {
 	if s.Db != nil {
 		s.Db.Close()
 	}
