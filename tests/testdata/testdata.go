@@ -8,19 +8,25 @@ import (
 	"github.com/PlopyBlopy/url-shorter/internal/domain"
 )
 
-type testGenerator struct {
+type TestGenerator struct {
 	delta uint64
 }
 
-func (g *testGenerator) GetCounter(ctx context.Context) (uint64, error) {
+func NewTestGenerator(delta uint64) *TestGenerator {
+	return &TestGenerator{
+		delta: delta,
+	}
+}
+
+func (g *TestGenerator) GetCounter(ctx context.Context) (uint64, error) {
 	return g.delta, nil
 }
 
 // Delta is base counter value generate from internal.generator. In app gets from DB. In testdata from origUrlDelta and shortUrlDelta. CratedAt increment on 1 hour.
 func GetUrls(count int, origUrlDelta, shortUrlDelta uint64) ([]domain.Url, error) {
 	out := make([]domain.Url, count)
-	g1 := &testGenerator{delta: origUrlDelta}
-	g2 := &testGenerator{delta: shortUrlDelta}
+	g1 := &TestGenerator{delta: origUrlDelta}
+	g2 := &TestGenerator{delta: shortUrlDelta}
 
 	ctx := context.Background()
 
@@ -46,8 +52,8 @@ func GetUrls(count int, origUrlDelta, shortUrlDelta uint64) ([]domain.Url, error
 }
 
 func GetUrl(origUrlDelta, shortUrlDelta uint64) (domain.Url, error) {
-	g1 := &testGenerator{delta: origUrlDelta}
-	g2 := &testGenerator{delta: shortUrlDelta}
+	g1 := &TestGenerator{delta: origUrlDelta}
+	g2 := &TestGenerator{delta: shortUrlDelta}
 
 	ctx := context.Background()
 
