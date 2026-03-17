@@ -43,7 +43,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err := testSuite.SetupTest(ctx)
+		err := testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -69,7 +69,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err := testSuite.SetupTest(ctx)
+		err := testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -102,7 +102,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err := testSuite.SetupTest(ctx)
+		err := testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -128,7 +128,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err := testSuite.SetupTest(ctx)
+		err := testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -161,7 +161,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err := testSuite.SetupTest(ctx)
+		err := testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -182,7 +182,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(pgContainerCtx)
+		err = testSuite.SetupTestPg(pgContainerCtx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -217,7 +217,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -245,7 +245,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -269,11 +269,44 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		assert.NotEqual(expUrls[1:], actUrls)
 	})
 
+	t.Run("getUrl", func(t *testing.T) {
+		//Arrange
+		require := require.New(t)
+		assert := assert.New(t)
+
+		ctx := context.Background()
+
+		err := testSuite.SetupTestPg(ctx)
+		require.NoError(err)
+
+		rep := adapters.NewRepository(testSuite.Db)
+
+		expected, err := testdata.GetUrl(0, 1)
+		require.NoError(err)
+
+		//Act
+		err = rep.AddUrl(expected, ctx)
+		require.NoError(err)
+
+		actualWithShortUrl, err := rep.GetUrl(expected.ShortUrl, ctx)
+		require.NoError(err)
+
+		actualWithOrigUrl, err := rep.GetUrl(expected.ShortUrl, ctx)
+		require.NoError(err)
+
+		//Assert
+		assert.NotEqual(domain.Url{}, actualWithShortUrl)
+		assert.Equal(expected, actualWithShortUrl)
+
+		assert.NotEqual(domain.Url{}, actualWithOrigUrl)
+		assert.Equal(expected, actualWithOrigUrl)
+	})
+
 	t.Run("GetUrls", func(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -310,7 +343,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -340,7 +373,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -370,7 +403,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -400,7 +433,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -431,7 +464,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -468,7 +501,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
@@ -505,7 +538,7 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 		//Arrange
 		ctx := context.Background()
 
-		err = testSuite.SetupTest(ctx)
+		err = testSuite.SetupTestPg(ctx)
 		require.NoError(t, err)
 
 		assert := assert.New(t)
