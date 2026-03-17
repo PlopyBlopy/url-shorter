@@ -5,18 +5,16 @@ import (
 	"fmt"
 	"math"
 	"sync/atomic"
-)
 
-type Repository interface {
-	GetCounter(ctx context.Context) (uint64, error)
-}
+	"github.com/PlopyBlopy/url-shorter/internal/domain"
+)
 
 type Generator struct {
 	counter uint64
-	rep     Repository
+	rep     domain.CounterGetter
 }
 
-func NewGenerator(rep Repository, ctx context.Context) (*Generator, error) {
+func NewGenerator(rep domain.CounterGetter, ctx context.Context) (*Generator, error) {
 	counter, err := rep.GetCounter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create Generator: %w", err)
