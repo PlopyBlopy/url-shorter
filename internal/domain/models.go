@@ -16,6 +16,10 @@ type ShortUrl struct {
 	ShortUrl string `json:"url" binding:"required,url"`
 }
 
+type AnyUrl struct {
+	Url string `json:"url" binding:"required,url"`
+}
+
 func NewUrl(origUrl, shortUrl string) Url {
 	return Url{
 		OrigUrl:   origUrl,
