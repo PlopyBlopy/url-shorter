@@ -14,8 +14,8 @@ import (
 type AppConfig struct {
 	IsDev bool
 	// HTTP
-	Domain string `env:"DOMAIN"`
-	Port   string `env:"PORT"`
+	Host string `env:"HOST"`
+	Port string `env:"PORT"`
 	// DB
 	DBConnString string `env:"DBConnString"`
 	MinConns     int32  `env:"MINCONNS"`
