@@ -44,3 +44,28 @@ func GetUrls(count int, origUrlDelta, shortUrlDelta uint64) ([]domain.Url, error
 
 	return out, err
 }
+
+func GetUrl(origUrlDelta, shortUrlDelta uint64) (domain.Url, error) {
+	g1 := &testGenerator{delta: origUrlDelta}
+	g2 := &testGenerator{delta: shortUrlDelta}
+
+	ctx := context.Background()
+
+	url := domain.Url{}
+
+	origGen, err := internal.NewGenerator(g1, ctx)
+	if err != nil {
+		return url, err
+	}
+
+	shortGen, err := internal.NewGenerator(g2, ctx)
+	if err != nil {
+		return url, err
+	}
+
+	url.OrigUrl = origGen.GenerateShortUrl()
+	url.ShortUrl = shortGen.GenerateShortUrl()
+	url.CreatedAt = time.Now().Add(time.Hour).UTC().Truncate(time.Microsecond)
+
+	return url, nil
+}
