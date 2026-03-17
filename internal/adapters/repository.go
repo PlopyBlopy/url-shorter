@@ -12,11 +12,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type IRepository interface {
+type RepositoryBase interface {
 	AddCounter(delta int, ctx context.Context) error
-	AddCounterTx(delta int, ctx context.Context) error
+	AddCounterTx(tx pgx.Tx, delta int, ctx context.Context) error
 	IncrementCounter(ctx context.Context) error
-	IncrementCounterTx(ctx context.Context) error
+	IncrementCounterTx(tx pgx.Tx, ctx context.Context) error
 
 	GetCounter(ctx context.Context) (uint64, error)
 	GetCounterTx(tx pgx.Tx, ctx context.Context) (uint64, error)
@@ -24,6 +24,7 @@ type IRepository interface {
 	AddUrl(url domain.Url, ctx context.Context) error
 	AddUrls(urls []domain.Url, ctx context.Context) error
 
+	GetUrl(anyurl string, ctx context.Context) (domain.Url, error)
 	GetUrls(limit int, ctx context.Context) ([]domain.Url, error)
 	GetUrlByShortUrl(shortUrl string, ctx context.Context) (domain.Url, error)
 	GetUrlByOrigUrl(origUrl string, ctx context.Context) (domain.Url, error)
@@ -31,7 +32,7 @@ type IRepository interface {
 	GetShortUrl(origUrl string, ctx context.Context) (string, error)
 
 	RemoveByOrigUrl(origUrl string, ctx context.Context) error
-	RemoveByShortUrl(shortUrl string, ctx context.Context)
+	RemoveByShortUrl(shortUrl string, ctx context.Context) error
 	RemoveExpired(before time.Time, ctx context.Context) error
 }
 
@@ -260,6 +261,22 @@ func (r *Repository) addUrlsCopyFrom(tx pgx.Tx, urls []domain.Url, ctx context.C
 	}
 
 	return nil
+}
+
+// Получение domain.Url
+// Может вернуть domain.Url с значениями полей или domain.Url с default значениями
+func (r *Repository) GetUrl(anyurl string, ctx context.Context) (domain.Url, error) {
+	var url domain.Url
+
+	err := r.pool.QueryRow(ctx, "SELECT * FROM urls WHERE orig_url = $1 OR short_url = $1", anyurl).Scan(&url.OrigUrl, &url.ShortUrl, &url.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return url, domain.ErrURLSNotFound
+		}
+		return url, err
+	}
+
+	return url, nil
 }
 
 // Получение domain.Url где их кол-во = limit.
