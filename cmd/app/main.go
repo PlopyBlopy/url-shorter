@@ -2,8 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
 	"github.com/PlopyBlopy/url-shorter/config"
 	"github.com/PlopyBlopy/url-shorter/internal"
@@ -65,30 +71,70 @@ func app(c config.AppConfig, log *zap.Logger) error {
 		return err
 	}
 
-	//router
+	// http server
+	errChan := make(chan error)
+
 	router := api.NewRouter(1, g, rep)
 
-	//httpserver
-	log.Info("Start listening to HTTP",
-		zap.String("domain", c.Domain),
-		zap.String("port", c.Port),
-	)
-
 	srv := http.Server{
-		Addr:    fmt.Sprintf("%s:%s", c.Domain, c.Port),
+		Addr:    fmt.Sprintf("%s:%s", c.Host, c.Port),
 		Handler: router,
 	}
 
-	// горутина для ListenAndServe
-	// Ожидание os события с завершением приложения
-	// Shutdown для srv с context.WithTimeout
-	err = srv.ListenAndServe()
-	if err != nil {
-		return err
-	}
+	log.Info("Start listening to HTTP",
+		zap.String("host", c.Host),
+		zap.String("port", c.Port),
+	)
+
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil {
+			errChan <- err
+		}
+	}()
 
 	// Graceful Shutdown
-	// in the future
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
 
-	return nil
+	select {
+	case err := <-errChan:
+		return err
+	case <-stopChan:
+		log.Info("The application is being Shutdown...")
+		srvShutdownChan := make(chan struct{})
+
+		var wg sync.WaitGroup
+
+		wg.Go(func() {
+			err := srv.Shutdown(ctx)
+			if err != nil {
+				errChan <- err
+			}
+		})
+		wg.Go(func() {
+			pool.Close()
+		})
+
+		go func() {
+			wg.Wait()
+			close(srvShutdownChan)
+		}()
+
+		timer := time.NewTimer(time.Second * 5)
+
+		for {
+			select {
+			case <-timer.C:
+				return errors.New("The timer has ended")
+			case err := <-errChan:
+				if !errors.Is(err, http.ErrServerClosed) {
+					return err
+				}
+			case <-srvShutdownChan:
+				log.Info("The application is completed")
+				return nil
+			}
+		}
+	}
 }
