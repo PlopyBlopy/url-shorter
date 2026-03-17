@@ -2,6 +2,7 @@ package urls
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -21,11 +22,15 @@ func GetUrlsHandler(u func(int, context.Context) ([]domain.Url, error)) func(*gi
 
 		urls, err := u(val, c)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			if errors.Is(err, domain.ErrURLSNotFound) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusCreated, urls)
+		c.JSON(http.StatusOK, urls)
 	}
 }
 
