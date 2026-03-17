@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/PlopyBlopy/url-shorter/config"
 	"github.com/PlopyBlopy/url-shorter/internal"
 	"github.com/PlopyBlopy/url-shorter/internal/adapters"
-	. "github.com/PlopyBlopy/url-shorter/internal/handlers/urls" // Point-to-point import in order not to specify the package urls
-	"github.com/gin-gonic/gin"
+	"github.com/PlopyBlopy/url-shorter/internal/api"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -34,14 +34,13 @@ func main() {
 
 	defer log.Sync()
 
-	err = app(c, log)
+	err = app(*c, log)
 	if err != nil {
 		log.Fatal("app error", zap.Error(err))
 	}
 }
 
-func app(c *config.AppConfig, log *zap.Logger) error {
-	r := gin.Default()
+func app(c config.AppConfig, log *zap.Logger) error {
 
 	// PostgreSQL connection
 	ctx := context.Background()
@@ -66,26 +65,25 @@ func app(c *config.AppConfig, log *zap.Logger) error {
 		return err
 	}
 
-	// usecases
-	addUrlUsecase := AddUrlUsecase(g, rep)
-	getUrlsUsecase := GetUrlsUsecase(rep)
-	getOrigUrlUsecase := GetOrigUrlUsecase(rep)
-	getShortUrlUsecase := GetShortUrlUsecase(rep)
+	//router
+	router := api.NewRouter(1, g, rep)
 
-	// handlers
-	v1 := r.Group("/v1")
-	v1.POST("/", AddUrlHandler(addUrlUsecase))
-	v1.GET("/urls", GetUrlsHandler(getUrlsUsecase))
-	v1.GET("/origurl", GetOrigUrlHandler(getOrigUrlUsecase))
-	v1.GET("/shorturl", GetShortUrlHandler(getShortUrlUsecase))
-
-	// HTTP Server
+	//httpserver
 	log.Info("Start listening to HTTP",
 		zap.String("domain", c.Domain),
 		zap.String("port", c.Port),
 	)
 
-	if err := r.Run(fmt.Sprintf("%s:%s", c.Domain, c.Port)); err != nil {
+	srv := http.Server{
+		Addr:    fmt.Sprintf("%s:%s", c.Domain, c.Port),
+		Handler: router,
+	}
+
+	// горутина для ListenAndServe
+	// Ожидание os события с завершением приложения
+	// Shutdown для srv с context.WithTimeout
+	err = srv.ListenAndServe()
+	if err != nil {
 		return err
 	}
 
