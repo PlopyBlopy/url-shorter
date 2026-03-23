@@ -1,39 +1,25 @@
 package internal
 
-import (
-	"context"
-	"fmt"
-	"math"
-	"sync/atomic"
-
-	"github.com/PlopyBlopy/url-shorter/internal/domain"
-)
+// The maximum number of unique short links.
+// Collisions are possible if this value is exceeded.
+const maxUnique = 106_932_384
 
 type Generator struct {
-	counter uint64
-	rep     domain.CounterGetter
 }
 
-func NewGenerator(rep domain.CounterGetter, ctx context.Context) (*Generator, error) {
-	counter, err := rep.GetCounter(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create Generator: %w", err)
-	}
-
-	return &Generator{
-		counter: counter,
-		rep:     rep,
-	}, nil
+func NewGenerator() (*Generator, error) {
+	return &Generator{}, nil
 }
 
-func (g *Generator) GenerateShortUrl() string {
+// TODO: в случае если counter не был увеличен на стороне БД, то при следующем запуске приложения создастся короткая ссылка - что уже есть в БД. Происходит из за того что есть внутренний counter и counter на стороне БД - несвязанные во время жизни приложения
+func (g *Generator) GenerateShortUrl(counter uint64) string {
 	buf := []byte{'h', 't', 't', 'p', 's', ':', '/', '/', 'c', 'l', 'i', 'c', 'k', '.', 'r', 'u', '/', ' ', ' ', ' ', ' ', ' ', ' '}
 
-	n := atomic.AddUint64(&g.counter, 1) - 1 // starts from 0 if first, or couter num
-
-	if n == math.MaxUint64 {
+	if counter >= maxUnique {
 		panic("The indicator value limit has been reached")
 	}
+
+	n := counter
 
 	const (
 		base26 = 26
