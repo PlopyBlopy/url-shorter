@@ -138,7 +138,12 @@ func (r *Repository) GetCounterTx(tx pgx.Tx, ctx context.Context) (uint64, error
 // Реализованна как транзакция.
 // Добавление структуры domain.Url в базу данных.
 // Автоматически увеличивает counter.
+// Может вернуть nil или domain.ErrEmptyData или domain.ErrURLSNoAdded
 func (r *Repository) AddUrl(url domain.Url, ctx context.Context) error {
+	if url == (domain.Url{}) {
+		return domain.ErrEmptyData
+	}
+
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -169,8 +174,12 @@ func (r *Repository) AddUrl(url domain.Url, ctx context.Context) error {
 // Реализованна как транзакция.
 // Добавление []domain.Url в базу данных.
 // Автоматически увеличивает counter на delta=len(urls).
-// Может вернуть ошибку или ошибку pgx.ErrNoRows
+// Может вернуть nil или domain.ErrEmptyData или domain.ErrURLSNoAdded
 func (r *Repository) AddUrls(urls []domain.Url, ctx context.Context) error {
+	if len(urls) == 0 {
+		return domain.ErrEmptyData
+	}
+
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -281,18 +290,23 @@ func (r *Repository) GetUrl(anyurl string, ctx context.Context) (domain.Url, err
 
 // Получение domain.Url где их кол-во = limit.
 // Может вернуть []domain.Url с элементами или empty []domain.Url.
+// It can return an empty []domain.Url and error, where the error can be nil or domain.ErrURLSNotFound
 func (r *Repository) GetUrls(limit int, ctx context.Context) ([]domain.Url, error) {
+	urls := []domain.Url{}
 	rows, err := r.pool.Query(ctx, "SELECT * FROM urls LIMIT $1", limit)
 	if err != nil {
-		return nil, err
+		return urls, err
+	}
+	if rows.CommandTag().RowsAffected() == 0 {
+		return urls, domain.ErrURLSNotFound
 	}
 
-	urls, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.Url])
+	urls, err = pgx.CollectRows(rows, pgx.RowToStructByName[domain.Url])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.ErrURLSNotFound
+			return urls, domain.ErrURLSNotFound
 		}
-		return nil, err
+		return urls, err
 	}
 	return urls, nil
 }
