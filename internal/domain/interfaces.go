@@ -5,7 +5,7 @@ import (
 )
 
 type ShortURLGenerator interface {
-	GenerateShortUrl() string
+	GenerateShortUrl(uint64) string
 }
 
 type UrlAddGetter interface {
