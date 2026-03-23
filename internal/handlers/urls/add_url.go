@@ -32,20 +32,22 @@ func AddUrlHandler(u func(string, context.Context) (string, error)) func(*gin.Co
 	}
 }
 
-func AddUrlUsecase(g domain.ShortURLGenerator, rep domain.UrlAddGetter) func(string, context.Context) (string, error) {
+func AddUrlUsecase(g domain.ShortURLGenerator, urlRep domain.UrlAddGetter, counterRep domain.CounterGetter) func(string, context.Context) (string, error) {
 	return func(origUrl string, ctx context.Context) (string, error) {
-		shortUrl, err := rep.GetShortUrl(origUrl, ctx)
+		shortUrl, err := urlRep.GetShortUrl(origUrl, ctx)
 		if err != nil {
 			if errors.Is(err, domain.ErrURLSNotFound) {
-				shortUrl = g.GenerateShortUrl()
+				counter, err := counterRep.GetCounter(ctx)
+				if err != nil {
+					return "", err
+				}
+
+				shortUrl = g.GenerateShortUrl(counter)
 
 				url := domain.NewUrl(origUrl, shortUrl)
 
-				err = rep.AddUrl(url, ctx)
+				err = urlRep.AddUrl(url, ctx)
 				if err != nil {
-					if errors.Is(err, domain.ErrURLSNoAdded) {
-						return "", err
-					}
 					return "", err
 				}
 			} else {
