@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -54,7 +53,7 @@ func TestHandlersV1(t *testing.T) {
 		require.NoError(err)
 
 		rep := adapters.NewRepository(testSuiteHttp.Db)
-		g, err := internal.NewGenerator(rep, ctx)
+		g, err := internal.NewGenerator()
 		require.NoError(err)
 
 		err, shutdown := testSuiteHttp.SetupTestHTTP(api.NewRouter(1, g, rep), ctx)
@@ -107,7 +106,7 @@ func TestHandlersV1(t *testing.T) {
 		require.NoError(err)
 
 		rep := adapters.NewRepository(testSuiteHttp.Db)
-		g, err := internal.NewGenerator(rep, ctx)
+		g, err := internal.NewGenerator()
 		require.NoError(err)
 
 		err, shutdown := testSuiteHttp.SetupTestHTTP(api.NewRouter(1, g, rep), ctx)
@@ -159,7 +158,7 @@ func TestHandlersV1(t *testing.T) {
 		require.NoError(err)
 
 		rep := adapters.NewRepository(testSuiteHttp.Db)
-		g, err := internal.NewGenerator(rep, ctx)
+		g, err := internal.NewGenerator()
 		require.NoError(err)
 
 		err, shutdown := testSuiteHttp.SetupTestHTTP(api.NewRouter(1, g, rep), ctx)
@@ -173,12 +172,13 @@ func TestHandlersV1(t *testing.T) {
 		require.NoError(err)
 
 		tests := []struct {
+			name         string
 			limit        int
 			expectedUrls []domain.Url
 		}{
-			{1, expectedUrls[:1]},
-			{5, expectedUrls[:5]},
-			{10, expectedUrls[:]},
+			{"get 1", 1, expectedUrls[:1]},
+			{"get 5", 5, expectedUrls[:5]},
+			{"get 10", 10, expectedUrls[:]},
 		}
 
 		// Act
@@ -186,7 +186,7 @@ func TestHandlersV1(t *testing.T) {
 		require.NoError(err)
 
 		for _, tt := range tests {
-			t.Run(fmt.Sprintf("limit=%d,expectedUrls=%d", tt.limit, len(tt.expectedUrls)), func(t *testing.T) {
+			t.Run(tt.name, func(t *testing.T) {
 				params := url.Values{}
 				params.Add("limit", strconv.Itoa(tt.limit))
 

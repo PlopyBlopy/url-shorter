@@ -189,11 +189,11 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 
 		rep := adapters.NewRepository(testSuite.Db)
 
-		gen, err := internal.NewGenerator(rep, ctx)
+		gen, err := internal.NewGenerator()
 		assert.NoError(err)
 
 		origUrl := "https://testdomain/testroute"
-		shortUrl := gen.GenerateShortUrl()
+		shortUrl := gen.GenerateShortUrl(0)
 		now := time.Now().UTC().Truncate(time.Microsecond)
 
 		expUrl := domain.Url{
@@ -350,12 +350,12 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 
 		rep := adapters.NewRepository(testSuite.Db)
 
-		gen, err := internal.NewGenerator(rep, ctx)
+		gen, err := internal.NewGenerator()
 		assert.NoError(err)
 
 		expUrl := domain.Url{
 			OrigUrl:   "https://testdomain/testroute",
-			ShortUrl:  gen.GenerateShortUrl(),
+			ShortUrl:  gen.GenerateShortUrl(0),
 			CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
 		}
 
@@ -380,12 +380,12 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 
 		rep := adapters.NewRepository(testSuite.Db)
 
-		gen, err := internal.NewGenerator(rep, ctx)
+		gen, err := internal.NewGenerator()
 		assert.NoError(err)
 
 		expUrl := domain.Url{
 			OrigUrl:   "https://testdomain/testroute",
-			ShortUrl:  gen.GenerateShortUrl(),
+			ShortUrl:  gen.GenerateShortUrl(0),
 			CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
 		}
 
@@ -410,12 +410,12 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 
 		rep := adapters.NewRepository(testSuite.Db)
 
-		gen, err := internal.NewGenerator(rep, ctx)
+		gen, err := internal.NewGenerator()
 		assert.NoError(err)
 
 		expUrl := domain.Url{
 			OrigUrl:   "https://testdomain/testroute",
-			ShortUrl:  gen.GenerateShortUrl(),
+			ShortUrl:  gen.GenerateShortUrl(0),
 			CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
 		}
 
@@ -440,12 +440,12 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 
 		rep := adapters.NewRepository(testSuite.Db)
 
-		gen, err := internal.NewGenerator(rep, ctx)
+		gen, err := internal.NewGenerator()
 		assert.NoError(err)
 
 		expUrl := domain.Url{
 			OrigUrl:   "https://testdomain/testroute",
-			ShortUrl:  gen.GenerateShortUrl(),
+			ShortUrl:  gen.GenerateShortUrl(0),
 			CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
 		}
 
@@ -471,12 +471,12 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 
 		rep := adapters.NewRepository(testSuite.Db)
 
-		gen, err := internal.NewGenerator(rep, ctx)
+		gen, err := internal.NewGenerator()
 		assert.NoError(err)
 
 		expUrl := domain.Url{
 			OrigUrl:   "https://testdomain/testroute",
-			ShortUrl:  gen.GenerateShortUrl(),
+			ShortUrl:  gen.GenerateShortUrl(0),
 			CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
 		}
 
@@ -508,12 +508,12 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 
 		rep := adapters.NewRepository(testSuite.Db)
 
-		gen, err := internal.NewGenerator(rep, ctx)
+		gen, err := internal.NewGenerator()
 		assert.NoError(err)
 
 		expUrl := domain.Url{
 			OrigUrl:   "https://testdomain/testroute",
-			ShortUrl:  gen.GenerateShortUrl(),
+			ShortUrl:  gen.GenerateShortUrl(0),
 			CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
 		}
 
@@ -532,76 +532,45 @@ func TestWithPostgresTestcontainerAndWithRollbackShapshotOnTest(t *testing.T) {
 			return actUrl == defaultUrl
 		})
 		assert.Error(actErr)
-		assert.ErrorIs(actErr, pgx.ErrNoRows)
+		assert.ErrorIs(actErr, domain.ErrURLSNotFound)
 	})
+
 	t.Run("RemoveExpired", func(t *testing.T) {
 		//Arrange
+		assert := assert.New(t)
+		require := require.New(t)
+
 		ctx := context.Background()
 
-		err = testSuite.SetupTestPg(ctx)
-		require.NoError(t, err)
-
-		assert := assert.New(t)
+		err := testSuite.SetupTestPg(ctx)
+		require.NoError(err)
 
 		rep := adapters.NewRepository(testSuite.Db)
 
-		gen, err := internal.NewGenerator(rep, ctx)
-		assert.NoError(err)
+		gen, err := internal.NewGenerator()
+		require.NoError(err)
 
-		tests := []struct {
-			urls []domain.Url
-		}{
-			{[]domain.Url{
-				{
-					OrigUrl:   "https://testdomain/testroute_0",
-					ShortUrl:  gen.GenerateShortUrl(),
-					CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
-				},
-			}},
-			{[]domain.Url{
-				{
-					OrigUrl:   "https://testdomain/testroute_0",
-					ShortUrl:  gen.GenerateShortUrl(),
-					CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
-				},
-			}},
-			{[]domain.Url{
-				{
-					OrigUrl:   "https://testdomain/testroute_0",
-					ShortUrl:  gen.GenerateShortUrl(),
-					CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
-				},
-				{
-					OrigUrl:   "https://testdomain/testroute_1",
-					ShortUrl:  gen.GenerateShortUrl(),
-					CreatedAt: time.Now().UTC().Truncate(time.Microsecond).Add(time.Hour * 2),
-				},
-			}},
+		createdAt := time.Now().UTC().Truncate(time.Microsecond)
+
+		url := domain.Url{
+			OrigUrl:   "https://testdomain/testroute_0",
+			ShortUrl:  gen.GenerateShortUrl(0),
+			CreatedAt: createdAt,
 		}
 
-		//Act
-		for _, test := range tests {
-			for _, url := range test.urls {
-				err = rep.AddUrl(url, ctx)
-				assert.NoError(err)
-			}
+		// Act
+		err = rep.AddUrl(url, ctx)
+		require.NoError(err)
 
-			err = rep.RemoveExpired(test.urls[0].CreatedAt.Add(time.Minute), ctx)
-			assert.NoError(err)
+		err = rep.RemoveExpired(createdAt.Add(time.Minute), ctx)
+		require.NoError(err)
 
-			actUrl, actErr := rep.GetUrlByShortUrl(test.urls[0].ShortUrl, ctx)
+		actUrls, actErr := rep.GetUrls(1, ctx)
 
-			//Assert
-			assert.Condition(func() bool {
-				defaultUrl := domain.Url{}
-				return actUrl == defaultUrl
-			})
-			assert.Error(actErr)
-			assert.ErrorIs(actErr, pgx.ErrNoRows)
-		}
-
+		// Assert
+		assert.Empty(actUrls)
+		assert.ErrorIs(actErr, domain.ErrURLSNotFound)
 	})
-
 }
 
 func TestWithPostgresTestcontainerAndWithoutRollbackShapshotOnTest(t *testing.T) {

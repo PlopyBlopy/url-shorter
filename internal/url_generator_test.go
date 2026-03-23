@@ -1,12 +1,9 @@
-package internal_test
+package internal
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
-	"github.com/PlopyBlopy/url-shorter/internal"
-	"github.com/PlopyBlopy/url-shorter/tests/testdata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,42 +14,35 @@ func TestGenerate(t *testing.T) {
 		require := require.New(t)
 		assert := assert.New(t)
 
-		ctx := context.Background()
-
-		tg := testdata.NewTestGenerator(0)
-
-		g, err := internal.NewGenerator(tg, ctx)
+		g, err := NewGenerator()
 		require.NoError(err)
 
 		// Act
-		url := g.GenerateShortUrl()
+		url := g.GenerateShortUrl(uint64(0))
 
 		// Assert
 		assert.Len(url, len("https://click.ru/XXXXXX"))
 	})
 
-	t.Run("no repetitions", func(t *testing.T) {
+	t.Run("no repetitions up to the maximum unique value", func(t *testing.T) {
 		// Arrange
 		require := require.New(t)
 		assert := assert.New(t)
 
-		ctx := context.Background()
-
-		tg := testdata.NewTestGenerator(0)
-
-		g, err := internal.NewGenerator(tg, ctx)
+		g, err := NewGenerator()
 		require.NoError(err)
 
-		// Act
-		max := 1069323
-		part := 6
+		var max uint64 = maxUnique
+
+		part := uint64(6)
 
 		m := make(map[string]int, max)
-
 		repetitionCount := 0
+		var val uint64
 
-		for i := 0; i < max; i++ {
-			url := g.GenerateShortUrl()
+		// Act
+		for val = 0; val < max; val++ {
+			url := g.GenerateShortUrl(val)
 			m[url] = m[url] + 1
 
 			if m[url] > 1 {
@@ -60,7 +50,7 @@ func TestGenerate(t *testing.T) {
 				fmt.Printf("key:%s, val:%d", url, m[url])
 			}
 
-			if part > 1 && i == max/part {
+			if part > 1 && val == max/part {
 				fmt.Printf("part:6/%d\n", part)
 				part--
 			}
@@ -68,5 +58,21 @@ func TestGenerate(t *testing.T) {
 
 		// Assert
 		assert.Equal(0, repetitionCount)
+	})
+
+	t.Run("the maximum unique value limit has been reached", func(t *testing.T) {
+		// Arrange
+		require := require.New(t)
+		assert := assert.New(t)
+
+		g, err := NewGenerator()
+		require.NoError(err)
+
+		var max uint64 = maxUnique + 1
+
+		// Assert
+		assert.Panics(func() {
+			_ = g.GenerateShortUrl(max)
+		})
 	})
 }

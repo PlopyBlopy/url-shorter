@@ -25,25 +25,21 @@ func (g *TestGenerator) GetCounter(ctx context.Context) (uint64, error) {
 // Delta is base counter value generate from internal.generator. In app gets from DB. In testdata from origUrlDelta and shortUrlDelta. CratedAt increment on 1 hour.
 func GetUrls(count int, origUrlDelta, shortUrlDelta uint64) ([]domain.Url, error) {
 	out := make([]domain.Url, count)
-	g1 := &TestGenerator{delta: origUrlDelta}
-	g2 := &TestGenerator{delta: shortUrlDelta}
 
-	ctx := context.Background()
-
-	origGen, err := internal.NewGenerator(g1, ctx)
+	origGen, err := internal.NewGenerator()
 	if err != nil {
 		return nil, err
 	}
 
-	shortGen, err := internal.NewGenerator(g2, ctx)
+	shortGen, err := internal.NewGenerator()
 	if err != nil {
 		return nil, err
 	}
 
 	for i := 0; i < count; i++ {
 		out[i] = domain.Url{
-			OrigUrl:   origGen.GenerateShortUrl(),
-			ShortUrl:  shortGen.GenerateShortUrl(),
+			OrigUrl:   origGen.GenerateShortUrl(uint64(i) + origUrlDelta),
+			ShortUrl:  shortGen.GenerateShortUrl(uint64(i) + shortUrlDelta),
 			CreatedAt: time.Now().Add(time.Hour).UTC().Truncate(time.Microsecond),
 		}
 	}
@@ -52,25 +48,20 @@ func GetUrls(count int, origUrlDelta, shortUrlDelta uint64) ([]domain.Url, error
 }
 
 func GetUrl(origUrlDelta, shortUrlDelta uint64) (domain.Url, error) {
-	g1 := &TestGenerator{delta: origUrlDelta}
-	g2 := &TestGenerator{delta: shortUrlDelta}
-
-	ctx := context.Background()
-
 	url := domain.Url{}
 
-	origGen, err := internal.NewGenerator(g1, ctx)
+	origGen, err := internal.NewGenerator()
 	if err != nil {
 		return url, err
 	}
 
-	shortGen, err := internal.NewGenerator(g2, ctx)
+	shortGen, err := internal.NewGenerator()
 	if err != nil {
 		return url, err
 	}
 
-	url.OrigUrl = origGen.GenerateShortUrl()
-	url.ShortUrl = shortGen.GenerateShortUrl()
+	url.OrigUrl = origGen.GenerateShortUrl(origUrlDelta)
+	url.ShortUrl = shortGen.GenerateShortUrl(shortUrlDelta)
 	url.CreatedAt = time.Now().Add(time.Hour).UTC().Truncate(time.Microsecond)
 
 	return url, nil
