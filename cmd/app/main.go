@@ -66,7 +66,7 @@ func app(c config.AppConfig, log *zap.Logger) error {
 	// dependencies
 	rep := adapters.NewRepository(pool)
 
-	g, err := internal.NewGenerator(rep, ctx)
+	g, err := internal.NewGenerator()
 	if err != nil {
 		return err
 	}
