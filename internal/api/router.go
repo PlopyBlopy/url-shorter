@@ -11,7 +11,7 @@ import (
 
 func NewRouter(version int, g domain.ShortURLGenerator, rep adapters.RepositoryBase) *gin.Engine {
 	// usecases
-	addUrlUsecase := AddUrlUsecase(g, rep)
+	addUrlUsecase := AddUrlUsecase(g, rep, rep)
 	getUrlUsecase := GetUrlUsecase(rep)
 	getUrlsUsecase := GetUrlsUsecase(rep)
 	getOrigUrlUsecase := GetOrigUrlUsecase(rep)
