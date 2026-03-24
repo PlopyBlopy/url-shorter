@@ -1,0 +1,12 @@
+# Exclusion of environment files.
+.env
+.env.dev
+.env.prod
+
+# Exclusion of service files
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+**/.docker
