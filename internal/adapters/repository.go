@@ -297,9 +297,6 @@ func (r *Repository) GetUrls(limit int, ctx context.Context) ([]domain.Url, erro
 	if err != nil {
 		return urls, err
 	}
-	if rows.CommandTag().RowsAffected() == 0 {
-		return urls, domain.ErrURLSNotFound
-	}
 
 	urls, err = pgx.CollectRows(rows, pgx.RowToStructByName[domain.Url])
 	if err != nil {

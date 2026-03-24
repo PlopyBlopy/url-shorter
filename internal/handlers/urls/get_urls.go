@@ -3,7 +3,6 @@ package urls
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -38,7 +37,7 @@ func GetUrlsUsecase(rep domain.UrlsGetter) func(int, context.Context) ([]domain.
 	return func(limit int, ctx context.Context) ([]domain.Url, error) {
 		urls, err := rep.GetUrls(limit, ctx)
 		if err != nil {
-			return nil, fmt.Errorf("Failed add url: %w", err)
+			return nil, err
 		}
 
 		return urls, nil
