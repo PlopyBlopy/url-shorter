@@ -31,6 +31,8 @@ func NewAppConfig() (*AppConfig, error) {
 
 	envFlag := flag.String("env", "prod", "Environment: dev|prod")
 
+	flag.Parse()
+
 	if ok := strings.EqualFold(*envFlag, "dev"); ok {
 		c.IsDev = true
 	}
