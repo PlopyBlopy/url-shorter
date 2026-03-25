@@ -7,18 +7,22 @@ import (
 
 	"github.com/PlopyBlopy/url-shorter/internal/domain"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 func GetOrigUrlHandler(u func(string, context.Context) (string, error)) func(*gin.Context) {
 	return func(c *gin.Context) {
-		var i domain.ShortUrl
+		shortUrl := c.DefaultQuery("short", "")
 
-		if err := c.ShouldBindJSON(&i); err != nil {
+		validate := validator.New()
+
+		err := validate.Var(shortUrl, "required,url")
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		origUrl, err := u(i.ShortUrl, c)
+		origUrl, err := u(shortUrl, c)
 		if err != nil {
 			if errors.Is(err, domain.ErrURLSNotFound) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err})

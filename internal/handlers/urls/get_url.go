@@ -7,19 +7,22 @@ import (
 
 	"github.com/PlopyBlopy/url-shorter/internal/domain"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 func GetUrlHandler(u func(url string, ctx context.Context) (domain.Url, error)) func(*gin.Context) {
 	return func(c *gin.Context) {
-		var anyurl domain.AnyUrl
+		anyurl := c.DefaultQuery("search", "")
 
-		err := c.ShouldBindJSON(&anyurl)
+		validate := validator.New()
+
+		err := validate.Var(anyurl, "required,url")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		url, err := u(anyurl.Url, c)
+		url, err := u(anyurl, c)
 		if err != nil {
 			if errors.Is(err, domain.ErrURLSNotFound) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
