@@ -15,10 +15,12 @@ import (
 	"github.com/PlopyBlopy/url-shorter/internal"
 	"github.com/PlopyBlopy/url-shorter/internal/adapters"
 	"github.com/PlopyBlopy/url-shorter/internal/api"
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
+// Базовая настройка.
 func main() {
 	c, err := config.NewAppConfig()
 	if err != nil {
@@ -46,8 +48,8 @@ func main() {
 	}
 }
 
+// Запусе приложения.
 func app(c config.AppConfig, log *zap.Logger) error {
-
 	// PostgreSQL connection
 	ctx := context.Background()
 	config, err := pgxpool.ParseConfig(c.DBConnString)
@@ -73,6 +75,10 @@ func app(c config.AppConfig, log *zap.Logger) error {
 
 	// http server
 	errChan := make(chan error)
+
+	if !c.IsDev {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	router := api.NewRouter(1, g, rep)
 
