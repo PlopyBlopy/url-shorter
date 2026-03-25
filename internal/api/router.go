@@ -23,8 +23,8 @@ func NewRouter(version int, g domain.ShortURLGenerator, rep adapters.RepositoryB
 	router.POST("/", AddUrlHandler(addUrlUsecase))
 	router.GET("/url", GetUrlHandler(getUrlUsecase))
 	router.GET("/urls", GetUrlsHandler(getUrlsUsecase))
-	router.GET("/origurl", GetOrigUrlHandler(getOrigUrlUsecase))
-	router.GET("/shorturl", GetShortUrlHandler(getShortUrlUsecase))
+	router.GET("/orig", GetOrigUrlHandler(getOrigUrlUsecase))
+	router.GET("/short", GetShortUrlHandler(getShortUrlUsecase))
 
 	return r
 }
