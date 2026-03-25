@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Ошибки
 const (
 	CounterNoAdded   = "counter have not been added"
 	CounterNotFound  = "no counter found"
@@ -12,6 +13,7 @@ const (
 	URLSNotFound     = "no urls found"
 	URLAlreadyExists = "the URL already exists"
 	EmptyData        = "the data is empty"
+	EmptyParams      = "the params is empty"
 )
 
 var (
@@ -21,6 +23,7 @@ var (
 	ErrURLSNotFound     = errors.New(URLSNotFound)
 	ErrURLAlreadyExists = errors.New(URLAlreadyExists)
 	ErrEmptyData        = errors.New(EmptyData)
+	ErrEmptyParams      = errors.New(EmptyParams)
 )
 
 func ErrCounterNoAddedMsg(code, msg string) error {
