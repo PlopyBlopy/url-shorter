@@ -31,3 +31,11 @@ test_integration:
 # e2e tests
 test_e2e:
     go test -tags=e2e .\...
+
+# docker: up and build in background
+up:
+    docker-compose -f .\docker\docker-compose.yml up -d --build  
+
+# docker: up data base and build in background
+up_db:
+    docker-compose -f .\docker\docker-compose.yml up url_shorter_db -d --build
