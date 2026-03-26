@@ -118,12 +118,12 @@ func app(c config.AppConfig, log *zap.Logger) error {
 				errChan <- err
 			}
 		})
-		wg.Go(func() {
-			pool.Close()
-		})
 
 		go func() {
 			wg.Wait()
+
+			pool.Close()
+
 			close(srvShutdownChan)
 		}()
 
