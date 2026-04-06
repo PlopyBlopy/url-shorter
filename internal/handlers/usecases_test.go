@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/PlopyBlopy/url-shorter/internal/domain"
 	"github.com/PlopyBlopy/url-shorter/internal/handlers/urls"
@@ -23,6 +24,10 @@ type MockCounterGetter struct {
 	mock.Mock
 }
 
+type MockUrlExpiredRemover struct {
+	mock.Mock
+}
+
 func (m *MockShortUrlGenerator) GenerateShortUrl(counter uint64) string {
 	args := m.Called(counter)
 	return args.String(0)
@@ -38,15 +43,20 @@ func (m *MockUrlAddGetter) GetShortUrl(origUrl string, ctx context.Context) (str
 }
 
 func (m *MockCounterGetter) GetCounter(ctx context.Context) (uint64, error) {
-	args := m.Called()
+	args := m.Called(ctx)
 	return args.Get(0).(uint64), args.Error(1)
+}
+
+func (m *MockUrlExpiredRemover) RemoveExpired(before time.Time, ctx context.Context) error {
+	args := m.Called(before, ctx)
+	return args.Error(0)
 }
 
 func TestAddUrlUsecase(t *testing.T) {
 	type fields struct {
-		generator  *MockShortUrlGenerator
-		urlRep     *MockUrlAddGetter
-		counterRep *MockCounterGetter
+		generator     *MockShortUrlGenerator
+		urladdGetter  *MockUrlAddGetter
+		counterGetter *MockCounterGetter
 	}
 
 	type args struct {
@@ -64,31 +74,50 @@ func TestAddUrlUsecase(t *testing.T) {
 		{
 			name: "success existing URL",
 			setupMocks: func(f fields) {
-				f.urlRep.On("GetShortUrl", "orig", mock.Anything).Return("short", nil).Once()
+				f.urladdGetter.On("GetShortUrl", "orig", mock.AnythingOfType("context.backgroundCtx")).Return("short", nil).Once()
 			},
 			want:    "short",
 			wantErr: nil,
 			args:    args{"orig", context.Background()},
 		},
 		{
-			name: "a non-existing URL, success generate short url and added",
+			name: "a non-existing URL, success get counter, generate short url and added",
 			setupMocks: func(f fields) {
-				f.urlRep.On("GetShortUrl", "orig", mock.Anything).Return("", domain.ErrURLSNotFound).Once()
-				f.generator.On("GenerateShortUrl").Return("short").Once()
-				f.urlRep.On("AddUrl", mock.MatchedBy(func(u domain.Url) bool {
+				f.urladdGetter.On("GetShortUrl", "orig", mock.AnythingOfType("context.backgroundCtx")).Return("", domain.ErrURLSNotFound).Once()
+				f.counterGetter.On("GetCounter", mock.AnythingOfType("context.backgroundCtx")).Return(uint64(0), nil)
+				f.generator.On("GenerateShortUrl", uint64(0)).Return("short").Once()
+				f.urladdGetter.On("AddUrl", mock.MatchedBy(func(u domain.Url) bool {
 					return u.OrigUrl == "orig" && u.ShortUrl == "short"
-				}), mock.Anything).Return(nil).Once()
+				}), mock.AnythingOfType("context.backgroundCtx")).Return(nil).Once()
 			},
 			want:    "short",
 			wantErr: nil,
 			args:    args{"orig", context.Background()},
 		},
-		// {
-		// 	name: "a non-existing URL, success generate short url and unsuccessfully added",
-		// },
-		// {
-		// 	name: "other db error",
-		// },
+		{
+			name: "a non-existing URL, success get counter, generate short url and unsuccessfully added",
+			setupMocks: func(f fields) {
+				f.urladdGetter.On("GetShortUrl", "orig", mock.AnythingOfType("context.backgroundCtx")).Return("", domain.ErrURLSNotFound).Once()
+				f.counterGetter.On("GetCounter", mock.AnythingOfType("context.backgroundCtx")).Return(uint64(0), nil).Once()
+				f.generator.On("GenerateShortUrl", uint64(0)).Return("short").Once()
+				f.urladdGetter.On("AddUrl", mock.MatchedBy(func(u domain.Url) bool {
+					return u.OrigUrl == "orig" && u.ShortUrl == "short"
+				}), mock.AnythingOfType("context.backgroundCtx")).Return(domain.ErrURLSNoAdded).Once()
+			},
+			want:    "",
+			wantErr: domain.ErrURLSNoAdded,
+			args:    args{"orig", context.Background()},
+		},
+		{
+			name: "a non-existing URL, unsuccessfully get counter",
+			setupMocks: func(f fields) {
+				f.urladdGetter.On("GetShortUrl", "orig", mock.AnythingOfType("context.backgroundCtx")).Return("", domain.ErrURLSNotFound).Once()
+				f.counterGetter.On("GetCounter", mock.AnythingOfType("context.backgroundCtx")).Return(uint64(0), domain.ErrCounterNotFound).Once()
+			},
+			want:    "",
+			wantErr: domain.ErrCounterNotFound,
+			args:    args{"orig", context.Background()},
+		},
 	}
 
 	for _, tt := range tests {
@@ -111,5 +140,48 @@ func TestAddUrlUsecase(t *testing.T) {
 			urlRep.AssertExpectations(t)
 			counterRep.AssertExpectations(t)
 		})
+	}
+}
+
+func TestDeleteExpiredUsecase(t *testing.T) {
+	type fields struct {
+		expiredRemover *MockUrlExpiredRemover
+	}
+
+	type args struct {
+		before time.Time
+		ctx    context.Context
+	}
+
+	tests := []struct {
+		name       string
+		setupMocks func(f fields)
+		wantErr    error
+		args       args
+	}{
+		{
+			name: "",
+			setupMocks: func(f fields) {
+				f.expiredRemover.On("RemoveExpired", time.Now().UTC().Truncate(time.Microsecond), mock.Anything).Return(nil).Once()
+			},
+			wantErr: nil,
+			args:    args{time.Now().UTC().Truncate(time.Microsecond), context.Background()},
+		},
+	}
+
+	for _, tt := range tests {
+		// Arrange
+		expiredRemover := new(MockUrlExpiredRemover)
+		tt.setupMocks(fields{expiredRemover})
+
+		// Act
+		u := urls.DeleteExpiredUsecase(expiredRemover)
+
+		err := u(tt.args.before.String(), tt.args.ctx)
+
+		// Assert
+		assert.ErrorIs(t, tt.wantErr, err)
+
+		expiredRemover.AssertExpectations(t)
 	}
 }
